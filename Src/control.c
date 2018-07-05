@@ -16,6 +16,10 @@
 #define CHANNEL_DRV2       TIM_CHANNEL_1
 #define CHANNEL_DRV3       TIM_CHANNEL_3
 
+#define FL_IDX             0
+#define FR_IDX             1
+#define TL_IDX             2
+#define TR_IDX             3
 
 
 typedef __packed struct
@@ -89,7 +93,7 @@ void ThrottleControl(uint8_t throttles[])
     HAL_TIM_PWM_Stop(phtims[i], drvChannels[i]);
     sConfigOC.Pulse = throttles[i];
     HAL_TIM_PWM_ConfigChannel(phtims[i], &sConfigOC, drvChannels[i]);
-    HAL_TIM_PWM_Start(phtims[i], drvChannels[i]);    
+    HAL_TIM_PWM_Start(phtims[i], drvChannels[i]);
   }
 }
 
@@ -150,17 +154,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   switch(GPIO_Pin)
   {
-    case COUNTER0_Pin:
-      state.counters[0]++;
+    case COUNTER_FL_Pin:
+      state.counters[FL_IDX]++;
       break;
-    case COUNTER1_Pin:
-      state.counters[1]++;
+    case COUNTER_FR_Pin:
+      state.counters[FR_IDX]++;
       break;
-    case COUNTER2_Pin:
-      state.counters[2]++;
+    case COUNTER_TL_Pin:
+      state.counters[TL_IDX]++;
       break;
-    case COUNTER3_Pin:
-      state.counters[3]++;
+    case COUNTER_TR_Pin:
+      state.counters[TR_IDX]++;
       break;
   }
 }
