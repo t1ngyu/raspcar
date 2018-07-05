@@ -65,8 +65,8 @@
 #define DRV3_A_GPIO_Port GPIOA
 #define DRV3_B_Pin GPIO_PIN_1
 #define DRV3_B_GPIO_Port GPIOA
-#define DRV3_EN_Pin GPIO_PIN_2
-#define DRV3_EN_GPIO_Port GPIOA
+#define DRV3_PWM_Pin GPIO_PIN_2
+#define DRV3_PWM_GPIO_Port GPIOA
 #define CSN_Pin GPIO_PIN_4
 #define CSN_GPIO_Port GPIOA
 #define SCK_Pin GPIO_PIN_5
@@ -95,28 +95,28 @@
 #define COUNTER_TR_Pin GPIO_PIN_15
 #define COUNTER_TR_GPIO_Port GPIOB
 #define COUNTER_TR_EXTI_IRQn EXTI15_10_IRQn
-#define DRV2_EN_Pin GPIO_PIN_8
-#define DRV2_EN_GPIO_Port GPIOA
+#define DRV2_A_Pin GPIO_PIN_8
+#define DRV2_A_GPIO_Port GPIOA
 #define DRV2_B_Pin GPIO_PIN_9
 #define DRV2_B_GPIO_Port GPIOA
-#define DRV3_AA10_Pin GPIO_PIN_10
-#define DRV3_AA10_GPIO_Port GPIOA
+#define DRV2_PWM_Pin GPIO_PIN_10
+#define DRV2_PWM_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
-#define DRV0_EN_Pin GPIO_PIN_15
-#define DRV0_EN_GPIO_Port GPIOA
+#define DRV0_PWM_Pin GPIO_PIN_15
+#define DRV0_PWM_GPIO_Port GPIOA
 #define DRV0_A_Pin GPIO_PIN_3
 #define DRV0_A_GPIO_Port GPIOB
 #define DRV0_B_Pin GPIO_PIN_4
 #define DRV0_B_GPIO_Port GPIOB
-#define DRV1_EN_Pin GPIO_PIN_5
-#define DRV1_EN_GPIO_Port GPIOB
+#define DRV1_B_Pin GPIO_PIN_5
+#define DRV1_B_GPIO_Port GPIOB
 #define DRV1_A_Pin GPIO_PIN_6
 #define DRV1_A_GPIO_Port GPIOB
-#define DRV1_B_Pin GPIO_PIN_7
-#define DRV1_B_GPIO_Port GPIOB
+#define DRV1_PWM_Pin GPIO_PIN_7
+#define DRV1_PWM_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**

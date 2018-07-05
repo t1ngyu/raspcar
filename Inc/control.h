@@ -13,7 +13,7 @@ extern I2C_HandleTypeDef hi2c2;
 extern SPI_HandleTypeDef hspi1;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
 
 void USB_Connect(void);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
