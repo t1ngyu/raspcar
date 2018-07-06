@@ -41,10 +41,10 @@ typedef struct
 
 static Driver_t drvs[] =
 {
-  {&htim2, TIM_CHANNEL_1, DRV0_A_GPIO_Port, DRV0_A_Pin, DRV0_B_GPIO_Port, DRV0_B_Pin, 1},
-  {&htim4, TIM_CHANNEL_2, DRV1_A_GPIO_Port, DRV1_A_Pin, DRV1_B_GPIO_Port, DRV1_B_Pin, 1},
-  {&htim1, TIM_CHANNEL_3, DRV2_A_GPIO_Port, DRV2_A_Pin, DRV2_B_GPIO_Port, DRV2_B_Pin, 1},
-  {&htim2, TIM_CHANNEL_3, DRV3_A_GPIO_Port, DRV3_A_Pin, DRV3_B_GPIO_Port, DRV3_B_Pin, 1},
+  {&htim2, TIM_CHANNEL_1, DRV_FL_A_GPIO_Port, DRV_FL_A_Pin, DRV_FL_B_GPIO_Port, DRV_FL_B_Pin, 1},
+  {&htim4, TIM_CHANNEL_2, DRV_FR_A_GPIO_Port, DRV_FR_A_Pin, DRV_FR_B_GPIO_Port, DRV_FR_B_Pin, 1},
+  {&htim1, TIM_CHANNEL_3, DRV_TL_A_GPIO_Port, DRV_TL_A_Pin, DRV_TL_B_GPIO_Port, DRV_TL_B_Pin, 1},
+  {&htim2, TIM_CHANNEL_3, DRV_TR_A_GPIO_Port, DRV_TR_A_Pin, DRV_TR_B_GPIO_Port, DRV_TR_B_Pin, 1},
 };
 
 static State_t state;
@@ -110,17 +110,19 @@ void ThrottleControl(int8_t throttles[])
       drv->isBreak = 0;
       if (throttles[i] & 0x80)
       {
+        // 后退
         HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
       }
       else
       {
+        // 前进
         HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_SET);
       }
     }
     state.throttles[i] = throttles[i];
-    config.Pulse = throttles[i] & 0x7F;
+    config.Pulse = (throttles[i] & 0x7F)* 10;
     HAL_TIM_PWM_Stop(drv->htim, drv->PWMChannel);
     HAL_TIM_PWM_ConfigChannel(drv->htim, &config, drv->PWMChannel);
     HAL_TIM_PWM_Start(drv->htim, drv->PWMChannel);

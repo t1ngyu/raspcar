@@ -61,12 +61,12 @@
 
 #define LED2_Pin GPIO_PIN_13
 #define LED2_GPIO_Port GPIOC
-#define DRV3_A_Pin GPIO_PIN_0
-#define DRV3_A_GPIO_Port GPIOA
-#define DRV3_B_Pin GPIO_PIN_1
-#define DRV3_B_GPIO_Port GPIOA
-#define DRV3_PWM_Pin GPIO_PIN_2
-#define DRV3_PWM_GPIO_Port GPIOA
+#define DRV_TR_A_Pin GPIO_PIN_0
+#define DRV_TR_A_GPIO_Port GPIOA
+#define DRV_TR_B_Pin GPIO_PIN_1
+#define DRV_TR_B_GPIO_Port GPIOA
+#define DRV_TR_PWM_Pin GPIO_PIN_2
+#define DRV_TR_PWM_GPIO_Port GPIOA
 #define CSN_Pin GPIO_PIN_4
 #define CSN_GPIO_Port GPIOA
 #define SCK_Pin GPIO_PIN_5
@@ -95,28 +95,28 @@
 #define COUNTER_TR_Pin GPIO_PIN_15
 #define COUNTER_TR_GPIO_Port GPIOB
 #define COUNTER_TR_EXTI_IRQn EXTI15_10_IRQn
-#define DRV2_A_Pin GPIO_PIN_8
-#define DRV2_A_GPIO_Port GPIOA
-#define DRV2_B_Pin GPIO_PIN_9
-#define DRV2_B_GPIO_Port GPIOA
-#define DRV2_PWM_Pin GPIO_PIN_10
-#define DRV2_PWM_GPIO_Port GPIOA
+#define DRV_TL_A_Pin GPIO_PIN_8
+#define DRV_TL_A_GPIO_Port GPIOA
+#define DRV_TL_B_Pin GPIO_PIN_9
+#define DRV_TL_B_GPIO_Port GPIOA
+#define DRV_TL_PWM_Pin GPIO_PIN_10
+#define DRV_TL_PWM_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
-#define DRV0_PWM_Pin GPIO_PIN_15
-#define DRV0_PWM_GPIO_Port GPIOA
-#define DRV0_A_Pin GPIO_PIN_3
-#define DRV0_A_GPIO_Port GPIOB
-#define DRV0_B_Pin GPIO_PIN_4
-#define DRV0_B_GPIO_Port GPIOB
-#define DRV1_B_Pin GPIO_PIN_5
-#define DRV1_B_GPIO_Port GPIOB
-#define DRV1_A_Pin GPIO_PIN_6
-#define DRV1_A_GPIO_Port GPIOB
-#define DRV1_PWM_Pin GPIO_PIN_7
-#define DRV1_PWM_GPIO_Port GPIOB
+#define DRV_FL_PWM_Pin GPIO_PIN_15
+#define DRV_FL_PWM_GPIO_Port GPIOA
+#define DRV_FL_B_Pin GPIO_PIN_3
+#define DRV_FL_B_GPIO_Port GPIOB
+#define DRV_FL_A_Pin GPIO_PIN_4
+#define DRV_FL_A_GPIO_Port GPIOB
+#define DRV_FR_B_Pin GPIO_PIN_5
+#define DRV_FR_B_GPIO_Port GPIOB
+#define DRV_FR_A_Pin GPIO_PIN_6
+#define DRV_FR_A_GPIO_Port GPIOB
+#define DRV_FR_PWM_Pin GPIO_PIN_7
+#define DRV_FR_PWM_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**

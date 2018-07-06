@@ -260,7 +260,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 1000;
+  htim1.Init.Period = 999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -314,7 +314,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1000;
+  htim2.Init.Period = 999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
@@ -357,7 +357,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 1000;
+  htim4.Init.Period = 999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
@@ -407,12 +407,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DRV3_A_Pin|DRV3_B_Pin|CSN_Pin|DRV2_A_Pin 
-                          |DRV2_B_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DRV_TR_A_Pin|DRV_TR_B_Pin|CSN_Pin|DRV_TL_A_Pin 
+                          |DRV_TL_B_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, USB_CTL_Pin|DRV0_A_Pin|DRV0_B_Pin|DRV1_B_Pin 
-                          |DRV1_A_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, USB_CTL_Pin|DRV_FL_B_Pin|DRV_FL_A_Pin|DRV_FR_B_Pin 
+                          |DRV_FR_A_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED2_Pin */
   GPIO_InitStruct.Pin = LED2_Pin;
@@ -421,19 +421,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DRV3_A_Pin DRV3_B_Pin CSN_Pin DRV2_A_Pin 
-                           DRV2_B_Pin */
-  GPIO_InitStruct.Pin = DRV3_A_Pin|DRV3_B_Pin|CSN_Pin|DRV2_A_Pin 
-                          |DRV2_B_Pin;
+  /*Configure GPIO pins : DRV_TR_A_Pin DRV_TR_B_Pin CSN_Pin DRV_TL_A_Pin 
+                           DRV_TL_B_Pin */
+  GPIO_InitStruct.Pin = DRV_TR_A_Pin|DRV_TR_B_Pin|CSN_Pin|DRV_TL_A_Pin 
+                          |DRV_TL_B_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : USB_CTL_Pin DRV0_A_Pin DRV0_B_Pin DRV1_B_Pin 
-                           DRV1_A_Pin */
-  GPIO_InitStruct.Pin = USB_CTL_Pin|DRV0_A_Pin|DRV0_B_Pin|DRV1_B_Pin 
-                          |DRV1_A_Pin;
+  /*Configure GPIO pins : USB_CTL_Pin DRV_FL_B_Pin DRV_FL_A_Pin DRV_FR_B_Pin 
+                           DRV_FR_A_Pin */
+  GPIO_InitStruct.Pin = USB_CTL_Pin|DRV_FL_B_Pin|DRV_FL_A_Pin|DRV_FR_B_Pin 
+                          |DRV_FR_A_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
