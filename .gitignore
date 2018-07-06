@@ -1,3 +1,3 @@
-/MDK-ARM/raspcar
-/MDK-ARM/*.lst
-/MDK-ARM/raspcar.uvguix*
+ctrl_board/MDK-ARM/raspcar
+ctrl_board/MDK-ARM/*.lst
+ctrl_board/MDK-ARM/raspcar.uvguix*
