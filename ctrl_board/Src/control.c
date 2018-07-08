@@ -122,7 +122,7 @@ void ThrottleControl(int8_t throttles[])
       }
     }
     state.throttles[i] = throttles[i];
-    config.Pulse = (throttles[i] & 0x7F)* 10;
+    config.Pulse = (throttles[i] & 0x7F);
     HAL_TIM_PWM_Stop(drv->htim, drv->PWMChannel);
     HAL_TIM_PWM_ConfigChannel(drv->htim, &config, drv->PWMChannel);
     HAL_TIM_PWM_Start(drv->htim, drv->PWMChannel);
