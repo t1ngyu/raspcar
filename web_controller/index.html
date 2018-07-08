@@ -1,0 +1,202 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>RaspCar</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="chrome=1, IE=9">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="pragma" content="no-cache"/>
+	<meta name="format-detection" content="telephone=no">
+	<meta name="HandheldFriendly" content="true" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<meta name="apple-mobile-web-app-title" content="RaspCar">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="viewport" content="height=device-height, width=device-width, user-scalable=no"/>
+	<link rel="apple-touch-icon" href="images/joystick-w.png">
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+	<style type="text/css">
+		body {
+			margin: 0;
+		}
+		#main {
+			position: fixed;
+			border: 0px red solid;
+		}
+	</style>
+	<script src="js/jquery-1.8.0.min.js"></script>
+	<script src="js/fabric.min.js"></script>
+</head>
+<body>
+	<!-- input type="button" value="send" id="send" /-->
+	<canvas id="main"></canvas>
+	<img src="images/background.jpg" style="display: none" />
+	<script>
+
+		// setup websocket with callbacks
+		var ws = new WebSocket('ws://127.0.0.1:8002/');
+		ws.onopen = function() {
+			console.log('CONNECT');
+		};
+		ws.onclose = function() {
+			console.log('DISCONNECT');
+		};
+		ws.onmessage = function(event) {
+			console.log('MESSAGE: ' + event.data);
+		};
+		function send(msg) {
+			ws.send(msg);
+		}
+
+
+		var width = $(window).width();
+		var height = $(window).height();
+
+		var joystickSize = 80;
+		var isJoystickActive = false;
+		var activePointerIndex = -1;
+		var joystickOriginalPos = {x: 120, y: 150};
+
+		var canvas = new fabric.Canvas('main');
+		canvas.selection = false;
+		canvas.backgroundColor = new fabric.Pattern({source: 'images/background.jpg'});
+		//canvas.backgroundColor = 'blue';
+
+		var text = new fabric.Text('', {
+			left: width - 10, top: 10,
+			angle: 90, fontSize: 20,
+		});
+		canvas.add(text);
+
+		var joystickPanel = new fabric.Circle({
+			radius: joystickSize, fill: '#AAAAAA50', left: 0, top: 0,
+			originX: 'center',
+			originY: 'center',
+			stroke: '#AAAAAA90', strokeWidth: 1
+		});
+
+		var contact = new fabric.Circle({
+			radius: 30, fill: '#666666F0', left: 0, top: 0,
+			originX: 'center',
+			originY: 'center',
+			stroke: '#AAAAAA90', strokeWidth: 7
+		});
+
+		var bindingBox = new fabric.Rect({
+			width: (joystickSize + 30 + 4) * 2,
+			height: (joystickSize + 30 + 4) *2,
+			originX: 'center',
+			originY: 'center',
+			fill: "#ff000000"
+		});
+
+		var joystick = new fabric.Group([joystickPanel, contact, bindingBox], {
+			originX: 'center',
+			originY: 'center',
+			left: joystickOriginalPos.x,
+			top: joystickOriginalPos.y,
+			selectable: false,
+		});
+
+		canvas.add(joystick);
+
+
+		function norm(v) {
+			return Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.y, 2));
+		}
+
+		function distance(p1, p2) {
+			return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+		}
+
+		function normalzie(v) {
+			var m = norm(v);
+			return {x: v.x / m, y: v.y / m};
+		}
+
+		function scale(v, len) {
+			return {x: v.x * len, y: v.y * len};
+		}
+
+		function round(v) {
+			return {x: Math.round(v.x), y: Math.round(v.y)};
+		}
+
+		canvas.on('mouse:down', (event)=>{
+			console.log('[DWON] ');
+			if (event.e instanceof TouchEvent) {
+				//console.log('TouchCount:' + event.e.touches.length);
+			}
+			var pos = event.pointer;
+
+			if (distance({x: joystick.left, y: joystick.top}, pos) > 2 * joystickSize) {
+				return;
+			}
+			isJoystickActive = true;
+			joystick.left = pos.x;
+			joystick.top = pos.y;
+			text.text = '0, 0';
+		});
+		canvas.on('mouse:move', (event)=> {
+			if (!isJoystickActive) return;
+
+			var pos = event.pointer;
+			var shift = {
+				x: pos.x - joystick.left,
+				y: pos.y - joystick.top,
+			};
+			var dis = norm(shift);
+			var angle = Math.atan2(shift.y, shift.x);
+
+			if (dis > joystickSize) {
+				dis = joystickSize;
+			}
+
+			var displayShift = 0;
+			var v = 0;
+			if (dis != 0) {
+				displayShift = {x: dis * Math.cos(angle), y: dis * Math.sin(angle)};
+				v = normalzie(displayShift);
+			} else {
+				displayShift = {x: 0, y: 0};
+				v = {x: 0, y: 0};
+			}
+			var velocity = {x: v.y, y: v.x};
+			velocity = round(scale(velocity, 100));
+
+			text.text = velocity.x.toFixed(0) + ', ' + velocity.y.toFixed(0);
+			joystick.item(1).left = displayShift.x;
+			joystick.item(1).top = displayShift.y;
+			joystick.set('dirty',true);
+			canvas.renderAll();
+			send(JSON.stringify(velocity));
+			console.log(JSON.stringify(velocity));
+		});
+		canvas.on('mouse:up', (event)=>{
+			console.log('[UP]');
+
+			isJoystickActive = false;
+			joystick.left = joystickOriginalPos.x;
+			joystick.top = joystickOriginalPos.y;
+			joystick.item(1).left = 0;
+			joystick.item(1).top = 0;
+			joystick.set('dirty',true);
+			text.text = '0, 0';
+			canvas.renderAll();
+			send(JSON.stringify({x: 0, y: 0}));
+		});
+
+		setTimeout(resize, 10);
+
+		function resize() {
+			width = $(window).width();
+			height = $(window).height();
+			console.log(width, height);
+			canvas.setWidth(width);
+			canvas.setHeight(height);
+			canvas.renderAll();
+		}
+		window.addEventListener('resize', resize, false);
+	</script>
+</body>
+</html>
