@@ -15,10 +15,8 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim4;
 
-void USB_Connect(void);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
-void Control_Init(void);
-void Control_Loop(void);
+void MainLoop(void);
 
 
 

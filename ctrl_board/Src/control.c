@@ -6,6 +6,9 @@
 #define WHEEL_COUNT     4
 #define LOOP_INTERVAL   10
 #define LED_FLASH_FREQ  10
+#define DIR_FORWARD         0x01
+#define DIR_BACKWARD        0x02
+#define DIR_BRAKE           0x00
 
 #define FL_IDX             0
 #define FR_IDX             1
@@ -17,13 +20,15 @@ typedef __packed struct
 {
   uint32_t counters[WHEEL_COUNT];
   uint8_t throttles[WHEEL_COUNT];
-  uint8_t dummy[12];
+  uint8_t direction;
+  uint8_t dummy[11];
   uint8_t loopCount;
 } State_t;
 
 typedef __packed struct
 {
   uint8_t throttles[WHEEL_COUNT];
+  uint8_t direction;
   uint8_t led;
 } ControlData_t;
 
@@ -35,13 +40,15 @@ typedef struct
   uint32_t APin;
   GPIO_TypeDef *BPort;
   uint32_t BPin;
-  uint32_t isBreak;
-  uint8_t target;
-  uint8_t current;
-} Driver_t;
+  int targetThrottle;
+  int currentThrottle;
+  int brakeTime;
+  int targetDirection;
+  int currentDirection;
+} Motor_t;
 
 
-static Driver_t drvs[] =
+static Motor_t motors[] =
 {
   {&htim2, TIM_CHANNEL_1, DRV_FL_A_GPIO_Port, DRV_FL_A_Pin, DRV_FL_B_GPIO_Port, DRV_FL_B_Pin, 1},
   {&htim4, TIM_CHANNEL_2, DRV_FR_A_GPIO_Port, DRV_FR_A_Pin, DRV_FR_B_GPIO_Port, DRV_FR_B_Pin, 1},
@@ -54,7 +61,7 @@ static uint32_t tickStart;
 static bool hasOutReportReceived;
 
 
-void USB_Connect(void)
+static void USB_Connect(void)
 {
   HAL_GPIO_WritePin(USB_CTL_GPIO_Port, USB_CTL_Pin, GPIO_PIN_RESET);
   HAL_Delay(1000);
@@ -67,7 +74,7 @@ static int8_t CUSTOM_HID_OutEvent_FS(uint8_t event_idx, uint8_t state)
   return (USBD_OK);
 }
 
-void Control_Init(void)
+static void LoopInit(void)
 {
   int i;
 
@@ -75,9 +82,11 @@ void Control_Init(void)
   {
     state.counters[i] = 0;
     state.throttles[i] = 0;
-    drvs[i].isBreak = 1;
-    drvs[i].target = 0;
-    drvs[i].current = 0;
+    motors[i].targetThrottle = 0;
+    motors[i].currentThrottle = 0;
+    motors[i].targetDirection = DIR_BRAKE;
+    motors[i].currentDirection = DIR_BRAKE;
+    motors[i].brakeTime = 0;
   }
   state.loopCount = 0;
   hasOutReportReceived = false;
@@ -86,26 +95,32 @@ void Control_Init(void)
   USB_Connect();
 }
 
-void Sonar(void)
+static void Sonar(void)
 {
   //HAL_GPIO_WritePin(SONAR_TRIG_GPIO_Port, SONAR_TRIG_Pin, GPIO_PIN_SET);
 
   //HAL_GPIO_WritePin(SONAR_TRIG_GPIO_Port, SONAR_TRIG_Pin, GPIO_PIN_RESET);
 }
 
-void ThrottleUpdateTarget(uint8_t throttles[])
+static void MotorUpdateTarget(uint8_t throttles[], uint8_t direction)
 {
   int i = 0;
   while (i < WHEEL_COUNT) {
-    drvs[i].target = throttles[i];
+    motors[i].targetThrottle = throttles[i];
+    motors[i].targetDirection = direction & 0x03;
+    if (motors[i].targetDirection == DIR_BRAKE)
+    {
+      motors[i].targetThrottle = 0;
+    }
+    direction >>= 2;
     i++;
   }
 }
 
-void ThrottleControl()
+static void MotorControl(void)
 {
-  int i;
-  Driver_t *drv;
+  int i, diff;
+  Motor_t *drv;
   TIM_OC_InitTypeDef config;
 
   config.OCMode = TIM_OCMODE_PWM1;
@@ -117,46 +132,70 @@ void ThrottleControl()
   config.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   for (i = 0; i < WHEEL_COUNT; i++)
   {
-    drv = &drvs[i];
-    if (drv->current == drv->target)
+    drv = &motors[i];
+    if (drv->brakeTime != 0)
+    {
+      drv->brakeTime--;
+    }
+    // 不需要更新速度或者刹车未完成
+    if ((drv->currentThrottle == drv->targetThrottle && drv->currentDirection == drv->targetDirection)
+     || drv->brakeTime)
     {
       continue;
     }
 
-    if (drv->target == 0x80)
+    // 刹车
+    if (drv->targetDirection == DIR_BRAKE ||
+      (drv->currentDirection != drv->targetDirection && drv->currentThrottle && drv->targetThrottle))
     {
-      // 刹车
       HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
       config.Pulse = 100;
+      drv->currentThrottle = 0;
+      drv->currentDirection = DIR_BRAKE;
+      // 刹车时间100ms
+      drv->brakeTime = 100 / LOOP_INTERVAL;
     }
     else
     {
       // 控制方向
-      if (((drv->current ^ drv->target) & 0x80) || (drv->current & 0x7F) == 0)
+      if (drv->currentThrottle == 0)
       {
-        if (drv->target & 0x80)
-        {
-          // 后退
-          HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_SET);
-          HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
-        }
-        else
+        if (drv->targetDirection == DIR_FORWARD)
         {
           // 前进
           HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_RESET);
           HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_SET);
         }
+        else
+        {
+          // 后退
+          HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_SET);
+          HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
+        }
+        drv->currentDirection = drv->targetDirection;
       }
-      config.Pulse = drv->target & 0x7F;
+      if (drv->currentThrottle != drv->targetThrottle)
+      {
+        diff = drv->targetThrottle - drv->currentThrottle;
+        if (diff > 7)
+        {
+          diff = 7;
+        }
+        else if (diff < -7)
+        {
+          diff = -7;
+        }
+        drv->currentThrottle += diff;
+      }
+      config.Pulse = drv->currentThrottle;
     }
     HAL_TIM_PWM_ConfigChannel(drv->htim, &config, drv->PWMChannel);
     HAL_TIM_PWM_Start(drv->htim, drv->PWMChannel);
-    drv->current = drv->target;
   }
 }
 
-void LedControl(uint8_t on)
+static void LedControl(uint8_t on)
 {
   /* output low for led on */
   if (on)
@@ -169,22 +208,28 @@ void LedControl(uint8_t on)
   }
 }
 
-void ReportState(void)
+static void ReportState(void)
 {
   int i;
+  uint8_t direction = 0;
   static uint8_t inReport[64];
+
   for (i = 0; i < WHEEL_COUNT; i++) {
-    state.throttles[i] = drvs[i].current;
+    state.throttles[i] = motors[i].currentThrottle;
+    direction <<= 2;
+    direction |= motors[WHEEL_COUNT - i - 1].currentDirection;
   }
+  state.direction = direction;
   memcpy(inReport, &state, sizeof(state));
   USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, inReport, sizeof(inReport));
 }
 
-void Control_Loop(void)
+void MainLoop(void)
 {
   ControlData_t *cData;
 
-  Control_Init();
+  LoopInit();
+
   tickStart = HAL_GetTick();
 
   while (1)
@@ -195,7 +240,7 @@ void Control_Loop(void)
     state.loopCount++;
 
     // LED2
-    if (state.loopCount % 10 == 0)
+    //if (state.loopCount % 10 == 0)
     {
       HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     }
@@ -211,10 +256,10 @@ void Control_Loop(void)
     {
       hasOutReportReceived = false;
       cData = (ControlData_t *)((USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData)->Report_buf;
-      ThrottleUpdateTarget(cData->throttles);
+      MotorUpdateTarget(cData->throttles, cData->direction);
     }
 
-    ThrottleControl();
+    MotorControl();
 
     // report status
     ReportState();
