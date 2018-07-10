@@ -16,14 +16,14 @@
 typedef __packed struct
 {
   uint32_t counters[WHEEL_COUNT];
-  int8_t throttles[WHEEL_COUNT];
-  int8_t dummy[12];
+  uint8_t throttles[WHEEL_COUNT];
+  uint8_t dummy[12];
   uint8_t loopCount;
 } State_t;
 
 typedef __packed struct
 {
-  int8_t throttles[WHEEL_COUNT];
+  uint8_t throttles[WHEEL_COUNT];
   uint8_t led;
 } ControlData_t;
 
@@ -36,6 +36,8 @@ typedef struct
   GPIO_TypeDef *BPort;
   uint32_t BPin;
   uint32_t isBreak;
+  uint8_t target;
+  uint8_t current;
 } Driver_t;
 
 
@@ -49,7 +51,6 @@ static Driver_t drvs[] =
 
 static State_t state;
 static uint32_t tickStart;
-static uint8_t inReport[64];
 static bool hasOutReportReceived;
 
 
@@ -75,6 +76,8 @@ void Control_Init(void)
     state.counters[i] = 0;
     state.throttles[i] = 0;
     drvs[i].isBreak = 1;
+    drvs[i].target = 0;
+    drvs[i].current = 0;
   }
   state.loopCount = 0;
   hasOutReportReceived = false;
@@ -90,7 +93,16 @@ void Sonar(void)
   //HAL_GPIO_WritePin(SONAR_TRIG_GPIO_Port, SONAR_TRIG_Pin, GPIO_PIN_RESET);
 }
 
-void ThrottleControl(int8_t throttles[])
+void ThrottleUpdateTarget(uint8_t throttles[])
+{
+  int i = 0;
+  while (i < WHEEL_COUNT) {
+    drvs[i].target = throttles[i];
+    i++;
+  }
+}
+
+void ThrottleControl()
 {
   int i;
   Driver_t *drv;
@@ -99,33 +111,48 @@ void ThrottleControl(int8_t throttles[])
   config.OCMode = TIM_OCMODE_PWM1;
   config.OCPolarity = TIM_OCPOLARITY_HIGH;
   config.OCFastMode = TIM_OCFAST_DISABLE;
-
+  config.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  config.OCFastMode = TIM_OCFAST_DISABLE;
+  config.OCIdleState = TIM_OCIDLESTATE_RESET;
+  config.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   for (i = 0; i < WHEEL_COUNT; i++)
   {
     drv = &drvs[i];
-    // 需要控制方向
-    if (((state.throttles[i] ^ throttles[i]) & 0x80) ||
-          drv->isBreak)
+    if (drv->current == drv->target)
     {
-      drv->isBreak = 0;
-      if (throttles[i] & 0x80)
-      {
-        // 后退
-        HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
-      }
-      else
-      {
-        // 前进
-        HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_SET);
-      }
+      continue;
     }
-    state.throttles[i] = throttles[i];
-    config.Pulse = (throttles[i] & 0x7F);
-    HAL_TIM_PWM_Stop(drv->htim, drv->PWMChannel);
+
+    if (drv->target == 0x80)
+    {
+      // 刹车
+      HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
+      config.Pulse = 100;
+    }
+    else
+    {
+      // 控制方向
+      if (((drv->current ^ drv->target) & 0x80) || (drv->current & 0x7F) == 0)
+      {
+        if (drv->target & 0x80)
+        {
+          // 后退
+          HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_SET);
+          HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_RESET);
+        }
+        else
+        {
+          // 前进
+          HAL_GPIO_WritePin(drv->APort, drv->APin, GPIO_PIN_RESET);
+          HAL_GPIO_WritePin(drv->BPort, drv->BPin, GPIO_PIN_SET);
+        }
+      }
+      config.Pulse = drv->target & 0x7F;
+    }
     HAL_TIM_PWM_ConfigChannel(drv->htim, &config, drv->PWMChannel);
     HAL_TIM_PWM_Start(drv->htim, drv->PWMChannel);
+    drv->current = drv->target;
   }
 }
 
@@ -142,14 +169,24 @@ void LedControl(uint8_t on)
   }
 }
 
+void ReportState(void)
+{
+  int i;
+  static uint8_t inReport[64];
+  for (i = 0; i < WHEEL_COUNT; i++) {
+    state.throttles[i] = drvs[i].current;
+  }
+  memcpy(inReport, &state, sizeof(state));
+  USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, inReport, sizeof(inReport));
+}
 
 void Control_Loop(void)
 {
   ControlData_t *cData;
 
+  Control_Init();
   tickStart = HAL_GetTick();
-  //state.throttles[2] = 50;
-  //ThrottleControl(state.throttles);
+
   while (1)
   {
     // frame control
@@ -169,18 +206,18 @@ void Control_Loop(void)
       Sonar();
     }
 
-    // report status
-    memcpy(inReport, &state, sizeof(state));
-    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, inReport, sizeof(inReport));
-
     // control
     if (hasOutReportReceived)
     {
       hasOutReportReceived = false;
       cData = (ControlData_t *)((USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData)->Report_buf;
-      ThrottleControl(cData->throttles);
-      //LedControl(cData->led);
+      ThrottleUpdateTarget(cData->throttles);
     }
+
+    ThrottleControl();
+
+    // report status
+    ReportState();
   }
 }
 
